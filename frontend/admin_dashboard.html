@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard | UNI Events</title>
+  <link rel="stylesheet" href="styles.css" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .admin-card {
+      background: white;
+      width: 90%;
+      max-width: 700px;
+      border-radius: 18px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+
+    .input-row button {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .input-row button:hover {
+      background: #1e40af;
+    }
+
+    .list {
+      margin-top: 20px;
+    }
+
+    .user-card {
+      background: #f9fafb;
+      padding: 14px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+    }
+
+    .user-card strong {
+      display: block;
+      font-size: 16px;
+    }
+
+    .user-card span {
+      color: #555;
+      font-size: 14px;
+    }
+
+    .empty {
+      color: #555;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="admin-card">
+    <h1>Admin – Event Registrations</h1>
+    <p>View students registered for a specific event</p>
+
+    <div class="input-row">
+      <input id="eventIdInput" type="number" placeholder="Enter Event ID" />
+      <button onclick="loadRegistrations()">View</button>
+    </div>
+
+    <div id="result" class="list">
+      <p class="empty">Enter an event ID to see registrations</p>
+    </div>
+  </div>
+
+  <script>
+    async function loadRegistrations() {
+      const eventId = document.getElementById("eventIdInput").value;
+      const container = document.getElementById("result");
+
+      if (!eventId) {
+        container.innerHTML = "<p class='empty'>Please enter an event ID</p>";
+        return;
+      }
+
+      container.innerHTML = "<p class='empty'>Loading...</p>";
+
+      try {
+        const res = await fetch(
+          `http://127.0.0.1:8000/events/${eventId}/registrations`
+        );
+        const data = await res.json();
+
+        container.innerHTML = "";
+
+        if (!data || data.length === 0) {
+          container.innerHTML = "<p class='empty'>No registrations found</p>";
+          return;
+        }
+
+        data.forEach(user => {
+          const card = document.createElement("div");
+          card.className = "user-card";
+
+          card.innerHTML = `
+            <strong>${user.username}</strong>
+            <span>${user.email}</span>
+          `;
+
+          container.appendChild(card);
+        });
+      } catch (err) {
+        container.innerHTML = "<p class='empty'>Failed to load registrations</p>";
+      }
+    }
+  </script>
+</body>
+</html>

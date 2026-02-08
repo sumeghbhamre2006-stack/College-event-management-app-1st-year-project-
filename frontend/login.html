@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login | UNI Events</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="auth-card">
+    <h2>UNI Events</h2>
+    <p>Login to continue</p>
+
+    <input type="email" id="email" placeholder="Email" required />
+    <input type="password" id="password" placeholder="Password" required />
+
+    <button onclick="login()">Login</button>
+
+    <p>
+        New user?
+        <a href="student_register.html">Create account</a>
+    </p>
+</div>
+
+<script>
+async function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+        const res = await fetch("http://127.0.0.1:8000/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.detail || "Login failed");
+            return;
+        }
+
+        // 🔐 Store JWT
+        localStorage.setItem("token", data.access_token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        // 🚦 Redirect by role
+        if (data.user.role === "admin") {
+            window.location.href = "admin_dashboard.html";
+        } else {
+            window.location.href = "student_dashboard.html";
+        }
+
+    } catch (err) {
+        alert("Backend not reachable");
+    }
+}
+</script>
+
+</body>
+</html>

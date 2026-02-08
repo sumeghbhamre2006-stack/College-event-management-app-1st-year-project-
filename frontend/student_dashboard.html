@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Student Dashboard | UNI Events</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .dashboard {
+      background: white;
+      width: 92%;
+      max-width: 1000px;
+      border-radius: 18px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h2 {
+      margin: 0;
+    }
+
+    .header button {
+      padding: 8px 16px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    .section {
+      margin-top: 35px;
+    }
+
+    .section h1 {
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    .events-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .event-card {
+      background: #f9fafb;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+    }
+
+    .event-meta {
+      color: #555;
+      font-size: 14px;
+      margin: 6px 0;
+    }
+
+    .event-card button {
+      margin-top: 12px;
+      width: 100%;
+      padding: 10px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .event-card button:hover {
+      background: #1e40af;
+    }
+
+    button.registered {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .empty {
+      color: #555;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="dashboard">
+    <!-- HEADER -->
+    <div class="header">
+      <h2>UNI Events</h2>
+      <button onclick="logout()">Logout</button>
+    </div>
+
+    <!-- UPCOMING EVENTS -->
+    <div class="section">
+      <h1>Upcoming Events</h1>
+      <p class="subtitle">Explore and register for upcoming college events</p>
+
+      <div id="eventsContainer" class="events-grid">
+        <p class="empty">Loading events...</p>
+      </div>
+    </div>
+
+    <!-- MY REGISTERED EVENTS -->
+    <div class="section">
+      <h1>My Registered Events</h1>
+      <p class="subtitle">Events you have successfully registered for</p>
+
+      <div id="myEventsContainer" class="events-grid">
+        <p class="empty">Loading registrations...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      loadEvents();
+      loadMyRegistrations();
+    });
+
+    function getLoggedInUser() {
+      return JSON.parse(localStorage.getItem("user"));
+    }
+
+    async function loadEvents() {
+      const container = document.getElementById("eventsContainer");
+
+      try {
+        const res = await fetch("http://127.0.0.1:8000/events");
+        const events = await res.json();
+
+        container.innerHTML = "";
+
+        if (!events || events.length === 0) {
+          container.innerHTML = "<p class='empty'>No events available</p>";
+          return;
+        }
+
+        events.forEach(event => {
+          const card = document.createElement("div");
+          card.className = "event-card";
+
+          card.innerHTML = `
+            <h3>${event.title}</h3>
+            <p class="event-meta">📅 ${new Date(event.date).toDateString()}</p>
+            <p class="event-meta">📍 ${event.venue}</p>
+            <button onclick="registerEvent(${event.id}, this)">Register</button>
+          `;
+
+          container.appendChild(card);
+        });
+      } catch {
+        container.innerHTML = "<p class='empty'>Failed to load events</p>";
+      }
+    }
+
+    async function loadMyRegistrations() {
+      const user = getLoggedInUser();
+      const container = document.getElementById("myEventsContainer");
+
+      if (!user) return;
+
+      try {
+        const res = await fetch(
+          `http://127.0.0.1:8000/users/${user.id}/registrations`
+        );
+        const events = await res.json();
+
+        container.innerHTML = "";
+
+        if (!events || events.length === 0) {
+          container.innerHTML = "<p class='empty'>No registered events yet</p>";
+          return;
+        }
+
+        events.forEach(event => {
+          const card = document.createElement("div");
+          card.className = "event-card";
+
+          card.innerHTML = `
+            <h3>${event.title}</h3>
+            <p class="event-meta">📅 ${new Date(event.date).toDateString()}</p>
+            <p class="event-meta">📍 ${event.venue}</p>
+            <button class="registered" disabled>Registered ✓</button>
+          `;
+
+          container.appendChild(card);
+        });
+      } catch {
+        container.innerHTML = "<p class='empty'>Failed to load registrations</p>";
+      }
+    }
+
+    async function registerEvent(eventId, btn) {
+      const user = getLoggedInUser();
+      if (!user) return;
+
+      try {
+        const res = await fetch(
+          `http://127.0.0.1:8000/events/${eventId}/register?user_id=${user.id}`,
+          { method: "POST" }
+        );
+        const data = await res.json();
+
+        if (!res.ok) {
+          if (data.detail === "Already registered") {
+            btn.innerText = "Registered ✓";
+            btn.classList.add("registered");
+            btn.disabled = true;
+          }
+          return;
+        }
+
+        btn.innerText = "Registered ✓";
+        btn.classList.add("registered");
+        btn.disabled = true;
+        loadMyRegistrations();
+
+      } catch {}
+    }
+
+    function logout() {
+      localStorage.removeItem("user");
+      window.location.href = "login.html";
+    }
+  </script>
+</body>
+</html>
